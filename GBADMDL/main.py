@@ -1,19 +1,39 @@
 import pandas as pd
-from scripts import Node, Graph, Depute, Edge
+from src import Node, Graph, Receipt, Edge
 
 df_politicians = pd.read_csv('data/deputies_dataset.csv', low_memory=False)
 
-attributes = ['receipt_date', 'political_party', 'state_code', 'establishment_name', 'receipt_value']
-graph = Graph([], [])
-nodes = dict([(x, dict()) for x in attributes])
-deputes = []
-limit = 30
+# Lista de atributos importantes para a análise dos recibos
+attributes = ['receipt_date', 'establishment_name', 'receipt_value']
+
+_nodes_ = dict([(x, dict()) for x in attributes])
+receipts, graphs, nodes_dict = [], dict(), dict()        
+limit = 10                                                  # Limite de recibos
 for _, row in df_politicians.iterrows():
     attrs = {}
-    id = graph.append_node(Node('depute'))              # Insere um novo deputado no grafo
-    for column, value in row.iteritems():
-        """ Itera por todas as linhas da tabela. """
-        attrs.update({ column: value })                 # Salva este atributo do deputado
+    receipt = Node('receipt')                               # Cria um novo nó para o recibo
+    attrs.update(row.items())                               # Salva este atributo do deputado
+    print (attrs)
+
+    deputy_id = attrs['deputy_id']
+
+    # Recupera o grafo do deputado, ou cria um novo com seus atributos principais
+    graph = graphs[deputy_id] if deputy_id in graphs else Graph(
+        **{'nodes': [
+            Node('deputy'), 
+            Node(deputy_id), 
+            Node(attrs['political_party']), 
+            Node(attrs['state_code'])
+        ], 'edges': [
+            Edge(node_from=0, node_to=1, attribute='deputy_id'), 
+            Edge(node_from=0, node_to=2, attribute='political_party'), 
+            Edge(node_from=0, node_to=2, attribute='political_party'),
+            Edge(node_from=0, node_to=3, attribute='state_code')
+        ]})
+    nodes = nodes_dict[deputy_id] if deputy_id in nodes_dict else _nodes_    
+    id = graph.append_node(receipt)                         # Insere o recibo no grafo
+    graph.append_edge(Edge(node_from=id, node_to=0, attribute='receipt'))
+    for column, value in attrs.items():
         if attributes.count(column):
             """ Verifica se esse atributo é de interesse do algoritmo. """
             if value not in nodes[column]:
@@ -37,13 +57,15 @@ for _, row in df_politicians.iterrows():
             """
             graph.append_edge(Edge(node_from=id, node_to=attr_value_id, attribute=column))
     
-    deputes.append(Depute(node_id=id, **attrs))             # Salva o deputado em uma lista de deputados
-
-    """ Cria uma aresta do deputado para armazenar seu ID, para consultas suas informações futuramente. """
-    attr_depute_id = graph.append_node(Node(len(deputes) - 1))
-    graph.append_edge(Edge(node_from=id, node_to=attr_depute_id, attribute='depute_id'))
+    receipts.append(Receipt(**attrs))                         # Salva o deputado em uma lista de deputados
+    graphs[deputy_id] = graph                               # Salva o grafo deste deputado
+    nodes_dict[deputy_id] = nodes                           # Salva a relação de attr:id
+    
     limit -= 1
     if limit == 0:
         break
 
-graph.print()
+print (len(graphs))
+
+# Plota o primeiro deputado
+list(graphs.values())[0].print()
