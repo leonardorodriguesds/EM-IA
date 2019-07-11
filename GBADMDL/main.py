@@ -8,7 +8,7 @@ attributes = ['receipt_date', 'establishment_name', 'receipt_value']
 
 _nodes_ = dict([(x, dict()) for x in attributes])
 receipts, graphs, nodes_dict = [], dict(), dict()        
-limit = 10                                                  # Limite de recibos
+limit = 2                                                  # Limite de recibos
 for _, row in df_politicians.iterrows():
     attrs = {}
     receipt = Node('receipt')                               # Cria um novo nó para o recibo
